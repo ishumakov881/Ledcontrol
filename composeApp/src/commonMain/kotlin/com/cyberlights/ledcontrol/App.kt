@@ -1,5 +1,6 @@
 package com.cyberlights.ledcontrol
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -46,34 +47,36 @@ fun App() {
                 )
             }
         ) { padding ->
-            when (currentRoute) {
-                is NavRoute.Devices -> {
-                    val isScanning by devicesViewModel.isScanning.collectAsState()
-                    val devices by devicesViewModel.devices.collectAsState()
-                    
-                    DevicesScreen(
-                        isScanning = isScanning,
-                        devices = devices,
-                        onStartScan = { devicesViewModel.startScan() },
-                        onStopScan = { devicesViewModel.stopScan() },
-                        onDeviceClick = { device -> 
-                            devicesViewModel.connectToDevice(device)
-                        }
+            Box(modifier = Modifier.padding(padding)) {
+                when (currentRoute) {
+                    is NavRoute.Devices -> {
+                        val isScanning by devicesViewModel.isScanning.collectAsState()
+                        val devices by devicesViewModel.devices.collectAsState()
+                        
+                        DevicesScreen(
+                            isScanning = isScanning,
+                            devices = devices,
+                            onStartScan = { devicesViewModel.startScan() },
+                            onStopScan = { devicesViewModel.stopScan() },
+                            onDeviceClick = { device -> 
+                                devicesViewModel.connectToDevice(device)
+                            }
+                        )
+                    }
+                    is NavRoute.Controls -> ControlsScreen(
+                        onNavigate = { currentRoute = it }
                     )
+                    is NavRoute.Effects -> EffectsScreen(
+                        onNavigate = { currentRoute = it }
+                    )
+                    is NavRoute.Settings -> SettingsScreen(
+                        onNavigate = { currentRoute = it }
+                    )
+                    is NavRoute.Log -> LogScreen(
+                        modifier = Modifier.padding(padding)
+                    )
+                    else -> {}
                 }
-                is NavRoute.Controls -> ControlsScreen(
-                    onNavigate = { currentRoute = it }
-                )
-                is NavRoute.Effects -> EffectsScreen(
-                    onNavigate = { currentRoute = it }
-                )
-                is NavRoute.Settings -> SettingsScreen(
-                    onNavigate = { currentRoute = it }
-                )
-                is NavRoute.Log -> LogScreen(
-                    modifier = Modifier.padding(padding)
-                )
-                else -> {}
             }
         }
     }

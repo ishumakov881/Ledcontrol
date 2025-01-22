@@ -1,7 +1,9 @@
 package com.cyberlights.ledcontrol.ui.screens.devices
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +20,7 @@ import com.cyberlights.ledcontrol.data.models.BleDevice
 import com.cyberlights.ledcontrol.data.models.ConnectionState
 import com.cyberlights.ledcontrol.navigation.NavRoute
 import com.cyberlights.ledcontrol.ui.components.ManufacturerDataDialog
+import com.cyberlights.ledcontrol.utils.copyToClipboard
 
 @Composable
 fun DevicesScreen(
@@ -134,6 +137,7 @@ fun DevicesScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DeviceItem(
     device: BleDevice,
@@ -247,11 +251,19 @@ private fun DeviceItem(
                         )
                     }
                 }
-                // Show data icon if manufacturer data exists
-                if (device.manufacturerData != null) {
+                // Show manufacturer info if available
+                if (device.manufacturerData != null || device.manufacturerName != null) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.combinedClickable(
+                            onClick = {},
+                            onLongClick = {
+                                device.manufacturerData?.let { data ->
+                                    copyToClipboard(data)
+                                }
+                            }
+                        )
                     ) {
                         device.manufacturerName?.let { name ->
                             Text(
@@ -260,12 +272,14 @@ private fun DeviceItem(
                                 color = MaterialTheme.colorScheme.secondary
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Has manufacturer data",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        if (device.manufacturerData != null) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Has manufacturer data",
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }
