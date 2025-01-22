@@ -23,9 +23,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun LogScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    logs: List<BleLogEntry> = emptyList(),
+    onClearLogs: () -> Unit = {}
 ) {
-    var logs by remember { mutableStateOf(listOf<BleLogEntry>()) }
     var showAnalysis by remember { mutableStateOf(false) }
     
     Column(
@@ -37,7 +38,7 @@ fun LogScreen(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = { logs = emptyList() }) {
+            IconButton(onClick = onClearLogs) {
                 Icon(
                     imageVector = Icons.Default.Clear,
                     contentDescription = "Clear log",
@@ -48,29 +49,53 @@ fun LogScreen(
             IconButton(onClick = { showAnalysis = !showAnalysis }) {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Toggle analysis",
-                    tint = if (showAnalysis) MaterialTheme.colorScheme.primary 
-                           else MaterialTheme.colorScheme.onSurface
-                )
-            }
-            
-            IconButton(onClick = { /* TODO: Save log */ }) {
-                Icon(
-                    imageVector = Icons.Default.Save,
-                    contentDescription = "Save log",
+                    contentDescription = if (showAnalysis) "Hide analysis" else "Show analysis",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
 
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 8.dp)
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(logs) { entry ->
-                LogEntry(entry, showAnalysis)
+            items(logs) { log ->
+                LogItem(log = log)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogItem(log: BleLogEntry) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = when (log.type) {
+                LogType.SEND -> MaterialTheme.colorScheme.primaryContainer
+                LogType.RECEIVE -> MaterialTheme.colorScheme.secondaryContainer
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = log.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            if (log.data.isNotEmpty()) {
+                Text(
+                    text = log.data.joinToString(" ") { "%02X".format(it) },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = FontFamily.Monospace
+                )
             }
         }
     }

@@ -3,6 +3,7 @@ package com.cyberlights.ledcontrol.data
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.*
+import android.bluetooth.BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
@@ -55,9 +56,47 @@ class AndroidBleScanner(
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            println("GATT status: $status, newState: $newState")
+            
+            // Логируем статус операции
+            val statusStr = when (status) {
+                BluetoothGatt.GATT_SUCCESS -> "GATT_SUCCESS"
+                BluetoothGatt.GATT_FAILURE -> "GATT_FAILURE"
+                BluetoothGatt.GATT_CONNECTION_CONGESTED -> "GATT_CONNECTION_CONGESTED"
+                BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION -> "GATT_INSUFFICIENT_AUTHENTICATION"
+                BluetoothGatt.GATT_INSUFFICIENT_ENCRYPTION -> "GATT_INSUFFICIENT_ENCRYPTION"
+                BluetoothGatt.GATT_INVALID_OFFSET -> "GATT_INVALID_OFFSET"
+                BluetoothGatt.GATT_READ_NOT_PERMITTED -> "GATT_READ_NOT_PERMITTED"
+                BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED -> "GATT_REQUEST_NOT_SUPPORTED"
+                BluetoothGatt.GATT_WRITE_NOT_PERMITTED -> "GATT_WRITE_NOT_PERMITTED"
+                133 -> "GATT_HCI_ERROR_HARDWARE_FAILURE" // Ошибка на уровне HCI - проблема с железом
+                else -> "Unknown status: $status"
+            }
+            println("GATT operation status: $statusStr")
+
+            // Добавляем специальную обработку для кода 133
+            if (status == 133) {
+                // Логируем ошибку
+                addLog(
+                    type = LogType.RECEIVE,
+                    data = byteArrayOf(status.toByte()),
+                    description = "Hardware failure detected, disconnecting"
+                )
+                
+                // Закрываем соединение
+                gatt.close()
+                //gatt = null
+                
+                // Обновляем состояние устройства
+                updateDeviceState(gatt.device.address, ConnectionState.DISCONNECTED)
+            }
+
+            // Логируем новое состояние
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
+                    println("STATE_CONNECTED")
                     updateDeviceState(gatt.device.address, ConnectionState.CONNECTED)
                     addLog(
                         type = LogType.RECEIVE,
@@ -66,7 +105,25 @@ class AndroidBleScanner(
                     )
                     gatt.discoverServices()
                 }
+                BluetoothProfile.STATE_CONNECTING -> {
+                    println("STATE_CONNECTING")
+                    updateDeviceState(gatt.device.address, ConnectionState.CONNECTING)
+                    addLog(
+                        type = LogType.RECEIVE,
+                        data = byteArrayOf(2),
+                        description = "Connecting to ${gatt.device.address}"
+                    )
+                }
+                BluetoothProfile.STATE_DISCONNECTING -> {
+                    println("STATE_DISCONNECTING")
+                    addLog(
+                        type = LogType.RECEIVE,
+                        data = byteArrayOf(3),
+                        description = "Disconnecting from ${gatt.device.address}"
+                    )
+                }
                 BluetoothProfile.STATE_DISCONNECTED -> {
+                    println("STATE_DISCONNECTED")
                     updateDeviceState(gatt.device.address, ConnectionState.DISCONNECTED)
                     addLog(
                         type = LogType.RECEIVE,
@@ -74,6 +131,14 @@ class AndroidBleScanner(
                         description = "Disconnected from ${gatt.device.address}"
                     )
                     gatt.close()
+                }
+                else -> {
+                    println("Unknown state: $newState")
+                    addLog(
+                        type = LogType.RECEIVE,
+                        data = byteArrayOf(4),
+                        description = "Unknown state ($newState) for ${gatt.device.address}"
+                    )
                 }
             }
         }
@@ -133,11 +198,15 @@ class AndroidBleScanner(
     }
 
     private fun updateDeviceState(address: String, state: ConnectionState) {
+        println("Updating device state: $address -> $state")
         val currentList = _devices.value.toMutableList()
         val index = currentList.indexOfFirst { it.address == address }
         if (index >= 0) {
             currentList[index] = currentList[index].copy(connectionState = state)
             _devices.value = currentList
+            println("Device state updated: ${currentList[index]}")
+        } else {
+            println("Device not found in list: $address")
         }
     }
 
@@ -241,6 +310,10 @@ class AndroidBleScanner(
     
     override fun clearDevices() {
         _devices.value = emptyList()
+    }
+
+    override fun clearLogs() {
+        _logs.value = emptyList()
     }
 
     @SuppressLint("MissingPermission")

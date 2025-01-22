@@ -116,11 +116,13 @@ fun DevicesScreen(
                     DeviceItem(
                         device = device,
                         onClick = { 
-                            if (device.manufacturerData != null) {
-                                selectedDevice = device
-                            } else {
-                                onDeviceClick(device)
-                            }
+                            onDeviceClick(device)
+                        },
+                        onShowManufacturerData = {
+                            selectedDevice = device
+                        },
+                        onCopyManufacturerData = { data ->
+                            copyToClipboard(data)
                         }
                     )
                 }
@@ -141,7 +143,9 @@ fun DevicesScreen(
 @Composable
 private fun DeviceItem(
     device: BleDevice,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onShowManufacturerData: () -> Unit,
+    onCopyManufacturerData: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -169,12 +173,14 @@ private fun DeviceItem(
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = device.displayName,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
                     )
                     when(device.connectionState) {
                         ConnectionState.CONNECTED -> Icon(
@@ -253,32 +259,39 @@ private fun DeviceItem(
                 }
                 // Show manufacturer info if available
                 if (device.manufacturerData != null || device.manufacturerName != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    Box(
                         modifier = Modifier.combinedClickable(
-                            onClick = {},
+                            onClick = { 
+                                if (device.manufacturerData != null) {
+                                    onShowManufacturerData()
+                                }
+                            },
                             onLongClick = {
                                 device.manufacturerData?.let { data ->
-                                    copyToClipboard(data)
+                                    onCopyManufacturerData(data)
                                 }
                             }
                         )
                     ) {
-                        device.manufacturerName?.let { name ->
-                            Text(
-                                text = name,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                        if (device.manufacturerData != null) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Has manufacturer data",
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(16.dp)
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            device.manufacturerName?.let { name ->
+                                Text(
+                                    text = name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                            if (device.manufacturerData != null) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "Has manufacturer data",
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }

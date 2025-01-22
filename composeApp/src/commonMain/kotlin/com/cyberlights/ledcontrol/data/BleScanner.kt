@@ -13,6 +13,7 @@ expect interface BleScanner {
     fun startScan()
     fun stopScan()
     fun clearDevices()
+    fun clearLogs()
     
     // Connection methods
     fun connect(device: BleDevice)

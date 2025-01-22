@@ -17,4 +17,5 @@ actual interface BleScanner {
     
     actual fun connect(device: BleDevice)
     actual fun disconnect(device: BleDevice)
+    actual fun clearLogs()
 } 

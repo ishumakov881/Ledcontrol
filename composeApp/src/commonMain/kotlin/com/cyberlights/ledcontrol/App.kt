@@ -72,9 +72,14 @@ fun App() {
                     is NavRoute.Settings -> SettingsScreen(
                         onNavigate = { currentRoute = it }
                     )
-                    is NavRoute.Log -> LogScreen(
-                        modifier = Modifier.padding(padding)
-                    )
+                    is NavRoute.Log -> {
+                        val logs by bleScanner.logs.collectAsState()
+                        LogScreen(
+                            modifier = Modifier.padding(padding),
+                            logs = logs,
+                            onClearLogs = { bleScanner.clearLogs() }
+                        )
+                    }
                     else -> {}
                 }
             }
