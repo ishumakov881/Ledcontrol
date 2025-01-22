@@ -175,7 +175,7 @@ private fun DeviceItem(
         ) {
             // Добавляем иконку устройства
             Icon(
-                imageVector = DeviceIcons.getDeviceIcon(device.name, device.manufacturerName),
+                imageVector = DeviceIcons.getDeviceIcon(device),
                 contentDescription = "Device type",
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary

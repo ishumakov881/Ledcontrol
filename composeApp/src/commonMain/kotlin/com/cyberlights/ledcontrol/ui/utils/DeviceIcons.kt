@@ -3,11 +3,13 @@ package com.cyberlights.ledcontrol.ui.utils
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.cyberlights.ledcontrol.data.models.BleDevice
 
 object DeviceIcons {
-    fun getDeviceIcon(deviceName: String, manufacturerName: String?): ImageVector {
-        val name = deviceName.lowercase()
-        val manufacturer = manufacturerName?.lowercase() ?: ""
+    fun getDeviceIcon(device: BleDevice): ImageVector {
+        val name = device.name.lowercase()
+        val manufacturer = device.manufacturerName?.lowercase() ?: ""
+        val address = device.address.lowercase()
         
         return when {
             // Умные лампы
@@ -27,6 +29,18 @@ object DeviceIcons {
             
             // Bluetooth аудио
             name.contains("speaker") || name.contains("headphone") || name.contains("audio") -> Icons.Default.Headphones
+            
+            // Garmin устройства
+            name.contains("fenix") -> Icons.Default.DirectionsRun
+            name.contains("forerunner") -> Icons.Default.DirectionsRun
+            name.contains("venu") -> Icons.Default.Watch
+            name.contains("instinct") -> Icons.Default.Hiking
+            manufacturer.contains("garmin") -> Icons.Default.Watch
+            
+            // MAC-адреса Garmin (первые 3 октета)
+            //address.startsWith("00:1A:11") || // TTPCom Limited (не Garmin!)
+            //address.startsWith("00:04:5B") || // Garmin
+            address.startsWith("00:1B:C5") -> Icons.Default.Watch // Garmin
             
             // Неизвестные устройства
             else -> Icons.Default.BluetoothSearching
