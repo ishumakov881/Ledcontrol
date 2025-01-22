@@ -1,16 +1,12 @@
 package com.cyberlights.ledcontrol.ui.screens.devices
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.NetworkWifi
-import androidx.compose.material.icons.filled.NetworkWifi1Bar
-import androidx.compose.material.icons.filled.NetworkWifi2Bar
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,15 +15,20 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cyberlights.ledcontrol.data.models.BleDevice
+import com.cyberlights.ledcontrol.data.models.ConnectionState
 import com.cyberlights.ledcontrol.navigation.NavRoute
+import com.cyberlights.ledcontrol.ui.components.ManufacturerDataDialog
 
 @Composable
 fun DevicesScreen(
     isScanning: Boolean,
     devices: List<BleDevice>,
     onStartScan: () -> Unit,
-    onStopScan: () -> Unit
+    onStopScan: () -> Unit,
+    onDeviceClick: (BleDevice) -> Unit
 ) {
+    var selectedDevice by remember { mutableStateOf<BleDevice?>(null) }
+    
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -109,22 +110,48 @@ fun DevicesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(devices) { device ->
-                    DeviceItem(device = device)
+                    DeviceItem(
+                        device = device,
+                        onClick = { 
+                            if (device.manufacturerData != null) {
+                                selectedDevice = device
+                            } else {
+                                onDeviceClick(device)
+                            }
+                        }
+                    )
                 }
             }
         }
     }
+    
+    // Show dialog if device is selected
+    selectedDevice?.let { device ->
+        ManufacturerDataDialog(
+            device = device,
+            onDismiss = { selectedDevice = null }
+        )
+    }
 }
 
 @Composable
-private fun DeviceItem(device: BleDevice) {
+private fun DeviceItem(
+    device: BleDevice,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = if (device.isBonded) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else 
-                MaterialTheme.colorScheme.surface
+            containerColor = when(device.connectionState) {
+                ConnectionState.CONNECTED -> MaterialTheme.colorScheme.primaryContainer
+                ConnectionState.CONNECTING -> MaterialTheme.colorScheme.secondaryContainer
+                ConnectionState.DISCONNECTED -> if (device.isBonded) 
+                    MaterialTheme.colorScheme.surfaceVariant 
+                else 
+                    MaterialTheme.colorScheme.surface
+            }
         )
     ) {
         Row(
@@ -136,21 +163,33 @@ private fun DeviceItem(device: BleDevice) {
         ) {
             // Левая часть - имя и адрес
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = device.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (device.isBonded) 
-                        MaterialTheme.colorScheme.onPrimaryContainer 
-                    else 
-                        MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = device.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    when(device.connectionState) {
+                        ConnectionState.CONNECTED -> Icon(
+                            imageVector = Icons.Default.Bluetooth,
+                            contentDescription = "Connected",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        ConnectionState.CONNECTING -> CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        else -> {}
+                    }
+                }
                 Text(
                     text = device.address,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (device.isBonded) 
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) 
-                    else 
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (!device.services.isNullOrEmpty()) {
                     Text(
@@ -208,12 +247,26 @@ private fun DeviceItem(device: BleDevice) {
                         )
                     }
                 }
-                if (device.manufacturer != null) {
-                    Text(
-                        text = "Mfr: ${device.manufacturer}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // Show data icon if manufacturer data exists
+                if (device.manufacturerData != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        device.manufacturerName?.let { name ->
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Has manufacturer data",
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }

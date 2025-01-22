@@ -19,7 +19,7 @@ import com.cyberlights.ledcontrol.ui.viewmodels.DevicesViewModel
 fun App() {
     var currentRoute: NavRoute by remember { mutableStateOf(NavRoute.Devices) }
     val logViewModel = remember { LogViewModel() }
-    val isDarkTheme by remember { mutableStateOf(ThemeSettings.isDarkTheme) }
+    val isDarkTheme = ThemeSettings.isDarkTheme
     
     // Get platform scanner
     val bleScanner = remember { getPlatformBleScanner() }
@@ -27,9 +27,9 @@ fun App() {
     
     MaterialTheme(
         colorScheme = if (isDarkTheme) {
-            MaterialTheme.colorScheme.copy()
+            darkColorScheme()
         } else {
-            MaterialTheme.colorScheme.copy()
+            lightColorScheme()
         }
     ) {
         Scaffold(
@@ -55,7 +55,10 @@ fun App() {
                         isScanning = isScanning,
                         devices = devices,
                         onStartScan = { devicesViewModel.startScan() },
-                        onStopScan = { devicesViewModel.stopScan() }
+                        onStopScan = { devicesViewModel.stopScan() },
+                        onDeviceClick = { device -> 
+                            devicesViewModel.connectToDevice(device)
+                        }
                     )
                 }
                 is NavRoute.Controls -> ControlsScreen(
