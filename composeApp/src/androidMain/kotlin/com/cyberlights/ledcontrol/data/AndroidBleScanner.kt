@@ -3,7 +3,8 @@ package com.cyberlights.ledcontrol.data
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.*
-import android.bluetooth.BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION
+import android.bluetooth.BluetoothDevice.TRANSPORT_AUTO
+import android.bluetooth.BluetoothDevice.TRANSPORT_LE
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
@@ -20,7 +21,7 @@ import com.cyberlights.ledcontrol.data.models.ManufacturerDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.Arrays
+
 
 class AndroidBleScanner(
     private val context: Context,
@@ -343,6 +344,7 @@ class AndroidBleScanner(
 
         // Подключаемся
         gatt = bluetoothDevice.connectGatt(context, false, gattCallback)
+        //gatt = bluetoothDevice.connectGatt(context, false, gattCallback, TRANSPORT_LE/*TRANSPORT_AUTO*/)
     }
 
     @SuppressLint("MissingPermission")
