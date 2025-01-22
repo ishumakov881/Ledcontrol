@@ -343,7 +343,7 @@ class AndroidBleScanner(
         updateDeviceState(device.address, ConnectionState.CONNECTING)
 
         // Подключаемся
-        gatt = bluetoothDevice.connectGatt(context, false, gattCallback)
+        gatt = bluetoothDevice.connectGatt(context, true, gattCallback)
         //gatt = bluetoothDevice.connectGatt(context, false, gattCallback, TRANSPORT_LE/*TRANSPORT_AUTO*/)
     }
 

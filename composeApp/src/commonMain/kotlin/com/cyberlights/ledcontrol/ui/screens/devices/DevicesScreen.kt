@@ -20,6 +20,7 @@ import com.cyberlights.ledcontrol.data.models.BleDevice
 import com.cyberlights.ledcontrol.data.models.ConnectionState
 import com.cyberlights.ledcontrol.navigation.NavRoute
 import com.cyberlights.ledcontrol.ui.components.ManufacturerDataDialog
+import com.cyberlights.ledcontrol.ui.components.ServicesDialog
 import com.cyberlights.ledcontrol.utils.copyToClipboard
 import com.cyberlights.ledcontrol.ui.utils.DeviceIcons
 
@@ -148,6 +149,8 @@ private fun DeviceItem(
     onShowManufacturerData: () -> Unit,
     onCopyManufacturerData: (String) -> Unit
 ) {
+    var showServices by remember { mutableStateOf(false) }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -214,7 +217,8 @@ private fun DeviceItem(
                     Text(
                         text = "Services: ${device.services.size}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { showServices = true }
                     )
                 }
             }
@@ -315,5 +319,12 @@ private fun DeviceItem(
                 )
             }
         }
+    }
+    
+    if (showServices) {
+        ServicesDialog(
+            device = device,
+            onDismiss = { showServices = false }
+        )
     }
 } 
