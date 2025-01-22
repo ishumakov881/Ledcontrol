@@ -1,35 +1,221 @@
 package com.cyberlights.ledcontrol.ui.screens.devices
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.NetworkWifi
+import androidx.compose.material.icons.filled.NetworkWifi1Bar
+import androidx.compose.material.icons.filled.NetworkWifi2Bar
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cyberlights.ledcontrol.data.models.BleDevice
 import com.cyberlights.ledcontrol.navigation.NavRoute
 
 @Composable
 fun DevicesScreen(
-    onNavigate: (NavRoute) -> Unit
+    isScanning: Boolean,
+    devices: List<BleDevice>,
+    onStartScan: () -> Unit,
+    onStopScan: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            "No devices connected", 
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = { onNavigate(NavRoute.Devices.ScanList) }
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Scan button with rotation animation
+        val rotation = remember { Animatable(0f) }
+        
+        LaunchedEffect(isScanning) {
+            if (isScanning) {
+                rotation.animateTo(
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2000, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    )
+                )
+            } else {
+                rotation.snapTo(0f)
+            }
+        }
+
+        // Scan button in Card for better visibility
+        Card(
+            modifier = Modifier.padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
         ) {
-            Icon(Icons.Default.Search, null)
-            Spacer(Modifier.width(8.dp))
-            Text("Scan for devices")
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                IconButton(
+                    onClick = { if (isScanning) onStopScan() else onStartScan() },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = if (isScanning) "Stop Scan" else "Start Scan",
+                        modifier = Modifier.rotate(rotation.value),
+                        tint = if (isScanning) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Text(
+                    text = if (isScanning) "Остановить" else "Начать сканирование",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+
+        if (devices.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isScanning) 
+                        "Поиск устройств..." 
+                    else 
+                        "Нажмите кнопку выше чтобы начать поиск",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(devices) { device ->
+                    DeviceItem(device = device)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceItem(device: BleDevice) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (device.isBonded) 
+                MaterialTheme.colorScheme.primaryContainer 
+            else 
+                MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Левая часть - имя и адрес
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = device.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (device.isBonded) 
+                        MaterialTheme.colorScheme.onPrimaryContainer 
+                    else 
+                        MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = device.address,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (device.isBonded) 
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!device.services.isNullOrEmpty()) {
+                    Text(
+                        text = "Services: ${device.services.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            
+            // Правая часть - RSSI и статус
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = when {
+                            device.rssi >= BleDevice.RSSI_MAX -> Icons.Default.NetworkWifi
+                            device.rssi >= BleDevice.RSSI_GOOD -> Icons.Default.NetworkWifi2Bar
+                            device.rssi >= BleDevice.RSSI_WEAK -> Icons.Default.NetworkWifi1Bar
+                            else -> Icons.Default.WifiOff
+                        },
+                        contentDescription = "Signal strength",
+                        tint = when {
+                            device.rssi >= BleDevice.RSSI_MAX -> MaterialTheme.colorScheme.primary
+                            device.rssi >= BleDevice.RSSI_GOOD -> MaterialTheme.colorScheme.secondary
+                            device.rssi >= BleDevice.RSSI_WEAK -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.error
+                        },
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${device.rssi} dBm",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (device.isBonded) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Link,
+                            contentDescription = "Bonded",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "Paired",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                if (device.manufacturer != null) {
+                    Text(
+                        text = "Mfr: ${device.manufacturer}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 } 

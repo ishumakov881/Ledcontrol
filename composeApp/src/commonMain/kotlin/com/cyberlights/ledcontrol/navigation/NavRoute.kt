@@ -8,4 +8,5 @@ sealed class NavRoute {
     data object Controls : NavRoute()
     data object Effects : NavRoute()
     data object Settings : NavRoute()
+    data object Log : NavRoute()
 } 

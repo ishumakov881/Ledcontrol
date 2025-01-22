@@ -19,12 +19,13 @@ fun AppTopBar(
             Icon(
                 imageVector = Icons.Default.Bluetooth,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary
+                tint = MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.Default.MusicNote,
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -36,5 +37,5 @@ private fun getScreenTitle(route: NavRoute): String = when(route) {
     is NavRoute.Controls -> "Controls" 
     is NavRoute.Effects -> "Effects"
     is NavRoute.Settings -> "Settings"
-    else -> {"Devices"}
+    else -> "Devices"
 }
