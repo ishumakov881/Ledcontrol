@@ -21,6 +21,7 @@ import com.cyberlights.ledcontrol.data.models.ConnectionState
 import com.cyberlights.ledcontrol.navigation.NavRoute
 import com.cyberlights.ledcontrol.ui.components.ManufacturerDataDialog
 import com.cyberlights.ledcontrol.utils.copyToClipboard
+import com.cyberlights.ledcontrol.ui.utils.DeviceIcons
 
 @Composable
 fun DevicesScreen(
@@ -150,7 +151,7 @@ private fun DeviceItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(
             containerColor = when(device.connectionState) {
                 ConnectionState.CONNECTED -> MaterialTheme.colorScheme.primaryContainer
@@ -165,10 +166,18 @@ private fun DeviceItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Добавляем иконку устройства
+            Icon(
+                imageVector = DeviceIcons.getDeviceIcon(device.name, device.manufacturerName),
+                contentDescription = "Device type",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            
             // Левая часть - имя и адрес
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -295,6 +304,15 @@ private fun DeviceItem(
                         }
                     }
                 }
+            }
+            
+            // Иконка информации справа
+            if (device.manufacturerData != null) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Show manufacturer data",
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
