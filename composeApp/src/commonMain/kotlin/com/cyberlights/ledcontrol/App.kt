@@ -67,7 +67,8 @@ fun App() {
                         onNavigate = { currentRoute = it }
                     )
                     is NavRoute.Effects -> EffectsScreen(
-                        onNavigate = { currentRoute = it }
+                        onNavigate = { currentRoute = it },
+                        bleScanner = bleScanner
                     )
                     is NavRoute.Settings -> SettingsScreen(
                         onNavigate = { currentRoute = it }

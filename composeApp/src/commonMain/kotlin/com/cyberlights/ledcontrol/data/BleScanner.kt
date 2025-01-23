@@ -18,4 +18,5 @@ expect interface BleScanner {
     // Connection methods
     fun connect(device: BleDevice)
     fun disconnect(device: BleDevice)
+    fun writeCharacteristic(byteArrayOf: ByteArray)
 } 

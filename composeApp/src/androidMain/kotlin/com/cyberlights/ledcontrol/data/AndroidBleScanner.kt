@@ -21,6 +21,7 @@ import com.cyberlights.ledcontrol.data.models.ManufacturerDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 
 
 class AndroidBleScanner(
@@ -148,6 +149,26 @@ class AndroidBleScanner(
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 val services = gatt.services.map { it.uuid.toString() }
                 updateDeviceServices(gatt.device.address, services)
+                
+                // Подробное логирование сервисов и характеристик
+                println("\n=== DISCOVERED SERVICES ===")
+                gatt.services.forEach { service ->
+                    println("\nService: ${service.uuid}")
+                    println("Short UUID: ${service.uuid.toString().split("-")[0].takeLast(4)}")
+                    service.characteristics.forEach { characteristic ->
+                        println("\n  Characteristic: ${characteristic.uuid}")
+                        println("  Short UUID: ${characteristic.uuid.toString().split("-")[0].takeLast(4)}")
+                        val props = mutableListOf<String>()
+                        if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_READ) != 0) props.add("READ")
+                        if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE) != 0) props.add("WRITE")
+                        if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) props.add("WRITE_NO_RESPONSE")
+                        if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) props.add("NOTIFY")
+                        if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) props.add("INDICATE")
+                        println("  Properties: ${props.joinToString(", ")}")
+                    }
+                }
+                println("\n=========================\n")
+                
                 addLog(
                     type = LogType.RECEIVE,
                     data = byteArrayOf(2),
@@ -315,6 +336,41 @@ class AndroidBleScanner(
 
     override fun clearLogs() {
         _logs.value = emptyList()
+    }
+
+    @SuppressLint("MissingPermission")
+    override fun writeCharacteristic(
+        data: ByteArray
+    ) {
+        // Ищем сервис с характеристикой, поддерживающей WRITE или WRITE_NO_RESPONSE
+        gatt?.services?.forEach { service ->
+            service.characteristics.forEach { characteristic ->
+                val props = characteristic.properties
+                if ((props and BluetoothGattCharacteristic.PROPERTY_WRITE) != 0 ||
+                    (props and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0) {
+                    
+                    println("Found writable characteristic: ${characteristic.uuid}")
+                    println("In service: ${service.uuid}")
+                    
+                    characteristic.value = data
+                    gatt?.writeCharacteristic(characteristic)
+                    
+                    addLog(
+                        type = LogType.SEND,
+                        data = data,
+                        description = "Writing to ${characteristic.uuid}: ${data.joinToString(", ") { "%02X".format(it) }}"
+                    )
+                    
+                    return
+                }
+            }
+        }
+        
+        addLog(
+            type = LogType.SEND,
+            data = byteArrayOf(),
+            description = "No writable characteristic found"
+        )
     }
 
     @SuppressLint("MissingPermission")
